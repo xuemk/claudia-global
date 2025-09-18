@@ -1138,6 +1138,7 @@ pub async fn execute_claude_code(
     model: String,
 ) -> Result<(), String> {
     use crate::commands::agents::{AgentDb, get_enabled_environment_variables};
+    use crate::commands::mcp::{mcp_read_project_config, MCPProjectConfig};
     log::info!(
         "Starting new Claude Code session in: {} with model: {}",
         project_path,
@@ -1145,7 +1146,7 @@ pub async fn execute_claude_code(
     );
 
     // Get enabled environment variables from database
-    let env_vars = match get_enabled_environment_variables(app.state::<AgentDb>()).await {
+    let mut env_vars = match get_enabled_environment_variables(app.state::<AgentDb>()).await {
         Ok(vars) => {
             log::info!("Retrieved {} environment variables from database", vars.len());
             for (key, value) in &vars {
@@ -1158,6 +1159,30 @@ pub async fn execute_claude_code(
             std::collections::HashMap::new()
         }
     };
+
+    // Read project MCP configuration to get disabled servers
+    let project_config = mcp_read_project_config(project_path.clone()).await.unwrap_or_else(|_| MCPProjectConfig {
+        mcp_servers: std::collections::HashMap::new(),
+    });
+
+    // Collect disabled server names
+    let disabled_servers: Vec<String> = project_config.mcp_servers
+        .iter()
+        .filter_map(|(name, config)| {
+            if config.disabled {
+                Some(name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if !disabled_servers.is_empty() {
+        let disabled_list = disabled_servers.join(",");
+        log::info!("Disabling MCP servers for this session: {}", disabled_list);
+        // Set environment variable to pass disabled servers to Claude Code
+        env_vars.insert("CLAUDIA_DISABLED_MCP_SERVERS".to_string(), disabled_list);
+    }
 
     let claude_path = find_claude_binary(&app)?;
 
@@ -1192,6 +1217,7 @@ pub async fn continue_claude_code(
     model: String,
 ) -> Result<(), String> {
     use crate::commands::agents::{AgentDb, get_enabled_environment_variables};
+    use crate::commands::mcp::{mcp_read_project_config, MCPProjectConfig};
     log::info!(
         "Continuing Claude Code conversation in: {} with model: {}",
         project_path,
@@ -1199,13 +1225,37 @@ pub async fn continue_claude_code(
     );
 
     // Get enabled environment variables from database
-    let env_vars = match get_enabled_environment_variables(app.state::<AgentDb>()).await {
+    let mut env_vars = match get_enabled_environment_variables(app.state::<AgentDb>()).await {
         Ok(vars) => vars,
         Err(e) => {
             log::warn!("Failed to get environment variables: {}", e);
             std::collections::HashMap::new()
         }
     };
+
+    // Read project MCP configuration to get disabled servers
+    let project_config = mcp_read_project_config(project_path.clone()).await.unwrap_or_else(|_| MCPProjectConfig {
+        mcp_servers: std::collections::HashMap::new(),
+    });
+
+    // Collect disabled server names
+    let disabled_servers: Vec<String> = project_config.mcp_servers
+        .iter()
+        .filter_map(|(name, config)| {
+            if config.disabled {
+                Some(name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if !disabled_servers.is_empty() {
+        let disabled_list = disabled_servers.join(",");
+        log::info!("Disabling MCP servers for continue session: {}", disabled_list);
+        // Set environment variable to pass disabled servers to Claude Code
+        env_vars.insert("CLAUDIA_DISABLED_MCP_SERVERS".to_string(), disabled_list);
+    }
 
     let claude_path = find_claude_binary(&app)?;
 
@@ -1241,6 +1291,7 @@ pub async fn resume_claude_code(
     model: String,
 ) -> Result<(), String> {
     use crate::commands::agents::{AgentDb, get_enabled_environment_variables};
+    use crate::commands::mcp::{mcp_read_project_config, MCPProjectConfig};
     log::info!(
         "Resuming Claude Code session: {} in: {} with model: {}",
         session_id,
@@ -1249,13 +1300,37 @@ pub async fn resume_claude_code(
     );
 
     // Get enabled environment variables from database
-    let env_vars = match get_enabled_environment_variables(app.state::<AgentDb>()).await {
+    let mut env_vars = match get_enabled_environment_variables(app.state::<AgentDb>()).await {
         Ok(vars) => vars,
         Err(e) => {
             log::warn!("Failed to get environment variables: {}", e);
             std::collections::HashMap::new()
         }
     };
+
+    // Read project MCP configuration to get disabled servers
+    let project_config = mcp_read_project_config(project_path.clone()).await.unwrap_or_else(|_| MCPProjectConfig {
+        mcp_servers: std::collections::HashMap::new(),
+    });
+
+    // Collect disabled server names
+    let disabled_servers: Vec<String> = project_config.mcp_servers
+        .iter()
+        .filter_map(|(name, config)| {
+            if config.disabled {
+                Some(name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if !disabled_servers.is_empty() {
+        let disabled_list = disabled_servers.join(",");
+        log::info!("Disabling MCP servers for resume session: {}", disabled_list);
+        // Set environment variable to pass disabled servers to Claude Code
+        env_vars.insert("CLAUDIA_DISABLED_MCP_SERVERS".to_string(), disabled_list);
+    }
 
     let claude_path = find_claude_binary(&app)?;
 

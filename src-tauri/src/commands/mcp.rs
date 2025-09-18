@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
+use uuid::Uuid;
 
 /// Helper function to create a std::process::Command with proper environment variables
 /// This ensures commands like Claude can find Node.js and other dependencies
@@ -40,6 +41,9 @@ pub struct MCPServer {
     pub scope: String,
     /// Whether the server is currently active
     pub is_active: bool,
+    /// Whether the server is disabled
+    #[serde(default)]
+    pub disabled: bool,
     /// Server status
     pub status: ServerStatus,
 }
@@ -70,6 +74,9 @@ pub struct MCPServerConfig {
     pub args: Vec<String>,
     #[serde(default)]
     pub env: HashMap<String, String>,
+    /// Whether the server is disabled
+    #[serde(default)]
+    pub disabled: bool,
 }
 
 /// Result of adding a server
@@ -364,6 +371,16 @@ pub async fn mcp_list(app: AppHandle) -> Result<Vec<MCPServer>, String> {
                 return Ok(vec![]);
             }
 
+            // Read project .mcp.json config to get disabled status
+            let current_project_path = std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .to_string_lossy()
+                .to_string();
+            
+            let project_config = mcp_read_project_config(current_project_path).await.unwrap_or_else(|_| MCPProjectConfig {
+                mcp_servers: HashMap::new(),
+            });
+
             // Parse the text output, handling multi-line commands
             let mut servers = Vec::new();
             let lines: Vec<&str> = trimmed.lines().collect();
@@ -424,6 +441,14 @@ pub async fn mcp_list(app: AppHandle) -> Result<Vec<MCPServer>, String> {
                         let full_command = command_parts.join(" ");
                         info!("Full command for server '{}': {:?}", name, full_command);
 
+                        // Check if server is disabled in project config
+                        let disabled = project_config.mcp_servers
+                            .get(&name)
+                            .map(|config| config.disabled)
+                            .unwrap_or(false);
+                        
+                        info!("Server '{}' disabled status from config: {}", name, disabled);
+
                         // For now, we'll create a basic server entry
                         servers.push(MCPServer {
                             name: name.clone(),
@@ -434,6 +459,7 @@ pub async fn mcp_list(app: AppHandle) -> Result<Vec<MCPServer>, String> {
                             url: None,
                             scope: "local".to_string(), // Default assumption
                             is_active: false,
+                            disabled, // Read from project config
                             status: ServerStatus {
                                 running: false,
                                 error: None,
@@ -456,8 +482,8 @@ pub async fn mcp_list(app: AppHandle) -> Result<Vec<MCPServer>, String> {
             info!("Found {} MCP servers total", servers.len());
             for (idx, server) in servers.iter().enumerate() {
                 info!(
-                    "Server {}: name='{}', command={:?}",
-                    idx, server.name, server.command
+                    "Server {}: name='{}', command={:?}, disabled={}",
+                    idx, server.name, server.command, server.disabled
                 );
             }
             Ok(servers)
@@ -515,6 +541,22 @@ pub async fn mcp_get(app: AppHandle, name: String) -> Result<MCPServer, String> 
                 }
             }
 
+            // Read project .mcp.json config to get disabled status
+            let current_project_path = std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .to_string_lossy()
+                .to_string();
+            
+            let project_config = mcp_read_project_config(current_project_path).await.unwrap_or_else(|_| MCPProjectConfig {
+                mcp_servers: HashMap::new(),
+            });
+
+            // Check if server is disabled in project config
+            let disabled = project_config.mcp_servers
+                .get(&name)
+                .map(|config| config.disabled)
+                .unwrap_or(false);
+
             Ok(MCPServer {
                 name,
                 transport,
@@ -524,6 +566,7 @@ pub async fn mcp_get(app: AppHandle, name: String) -> Result<MCPServer, String> 
                 url,
                 scope,
                 is_active: false,
+                disabled, // Read from project config
                 status: ServerStatus {
                     running: false,
                     error: None,
@@ -551,6 +594,93 @@ pub async fn mcp_remove(app: AppHandle, name: String) -> Result<String, String> 
         Err(e) => {
             error!("Failed to remove MCP server: {}", e);
             Err(e.to_string())
+        }
+    }
+}
+
+/// Toggles the disabled status of an MCP server
+#[tauri::command]
+pub async fn mcp_toggle_disabled(app: AppHandle, name: String, disabled: bool, project_path: Option<String>) -> Result<String, String> {
+    info!("Toggling MCP server '{}' disabled status to: {}", name, disabled);
+    
+    // For now, we'll use the current working directory as the project path if not provided
+    let current_project_path = project_path.unwrap_or_else(|| {
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .to_string_lossy()
+            .to_string()
+    });
+    
+    // Read the current .mcp.json configuration
+    match mcp_read_project_config(current_project_path.clone()).await {
+        Ok(mut config) => {
+            if let Some(server_config) = config.mcp_servers.get_mut(&name) {
+                server_config.disabled = disabled;
+            } else {
+                // Server not found in config, try to get server details and create config entry
+                info!("Server '{}' not found in .mcp.json, attempting to create config entry", name);
+                
+                // Get server details using claude mcp get command
+                match execute_claude_mcp_command(&app, vec!["get", &name]).await {
+                    Ok(output) => {
+                        // Parse the command from output
+                        let mut command = String::new();
+                        let mut args = Vec::new();
+                        let mut env = HashMap::new();
+                        
+                        for line in output.lines() {
+                            let line = line.trim();
+                            if line.starts_with("Command:") {
+                                let full_command = line.replace("Command:", "").trim().to_string();
+                                let parts: Vec<&str> = full_command.split_whitespace().collect();
+                                if !parts.is_empty() {
+                                    command = parts[0].to_string();
+                                    args = parts[1..].iter().map(|s| s.to_string()).collect();
+                                }
+                            }
+                            // TODO: Parse environment variables if needed
+                        }
+                        
+                        // Create new server config entry
+                        config.mcp_servers.insert(name.clone(), MCPServerConfig {
+                            command,
+                            args,
+                            env,
+                            disabled,
+                        });
+                        
+                        info!("Created new config entry for server '{}'", name);
+                    }
+                    Err(e) => {
+                        info!("Could not get server details for '{}': {}, creating minimal config entry", name, e);
+                        
+                        // Create minimal config entry
+                        config.mcp_servers.insert(name.clone(), MCPServerConfig {
+                            command: String::new(), // Will be empty, but that's ok for just tracking disabled status
+                            args: Vec::new(),
+                            env: HashMap::new(),
+                            disabled,
+                        });
+                    }
+                }
+            }
+            
+            // Save the updated configuration
+            match mcp_save_project_config(current_project_path, config).await {
+                Ok(_) => {
+                    let status = if disabled { "disabled" } else { "enabled" };
+                    info!("Successfully {} MCP server: {}", status, name);
+                    Ok(format!("Server '{}' has been {}", name, status))
+                }
+                Err(e) => {
+                    error!("Failed to save MCP configuration: {}", e);
+                    Err(e)
+                }
+            }
+        }
+        Err(e) => {
+            error!("Failed to read MCP configuration: {}", e);
+            Err(e)
         }
     }
 }

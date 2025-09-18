@@ -16,7 +16,7 @@ export interface SwitchProps extends React.InputHTMLAttributes<HTMLInputElement>
   /**
    * Visual variant of the switch
    */
-  variant?: "default" | "high-contrast";
+  variant?: "default" | "high-contrast" | "status-colors";
 }
 
 /**
@@ -28,7 +28,10 @@ export interface SwitchProps extends React.InputHTMLAttributes<HTMLInputElement>
  * @param checked - Whether the switch is in the on position
  * @param onCheckedChange - Callback when the switch state changes
  * @param disabled - Whether the switch is disabled
- * @param variant - Visual variant for different use cases
+ * @param variant - Visual variant for different use cases:
+ *   - "default": Uses theme colors
+ *   - "high-contrast": Black/white high contrast mode
+ *   - "status-colors": Green for enabled, red for disabled (high visibility)
  * @param className - Additional CSS classes
  *
  * @example
@@ -46,6 +49,13 @@ export interface SwitchProps extends React.InputHTMLAttributes<HTMLInputElement>
  *   disabled={isLoading}
  *   variant="high-contrast"
  * />
+ *
+ * // For environment variable groups with high visibility
+ * <Switch
+ *   checked={groupEnabled}
+ *   onCheckedChange={setGroupEnabled}
+ *   variant="status-colors"
+ * />
  * ```
  */
 const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
@@ -56,6 +66,14 @@ const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
         return {
           backgroundColor: checked ? "#000000" : "#ffffff",
           border: checked ? "2px solid #ffffff" : "2px solid #666666",
+        };
+      }
+      
+      if (variant === "status-colors") {
+        return {
+          backgroundColor: checked ? "#22c55e" : "#ef4444", // 绿色(启用) / 红色(禁用)
+          border: "2px solid transparent",
+          boxShadow: checked ? "0 0 0 1px #16a34a" : "0 0 0 1px #dc2626", // 边框阴影
         };
       }
       
@@ -70,6 +88,12 @@ const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
       if (variant === "high-contrast") {
         return {
           backgroundColor: checked ? "#ffffff" : "#000000",
+        };
+      }
+      
+      if (variant === "status-colors") {
+        return {
+          backgroundColor: "#ffffff", // 白色拇指，在绿色和红色背景上都清晰可见
         };
       }
       

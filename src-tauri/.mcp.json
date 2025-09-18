@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "mcp-dialog-memory": {
+      "command": "C:\\Python313\\python.exe",
+      "args": [],
+      "env": {},
+      "disabled": false
+    }
+  }
+}

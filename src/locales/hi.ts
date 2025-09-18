@@ -507,6 +507,10 @@ export const hi: Translations = {
     importedServersPartial: "{imported} सर्वर आयात किए गए, {failed} विफल",
     mcpManagerTitle: "MCP सर्वर",
     mcpManagerSubtitle: "मॉडल कॉन्टेक्स्ट प्रोटोकॉल सर्वर प्रबंधित करें",
+    serverDisabledCannotTest: "सर्वर अक्षम है, कनेक्शन टेस्ट नहीं किया जा सकता",
+    toggleServerStatus: "सर्वर स्थिति टॉगल करें",
+    enableServer: "सर्वर सक्षम करें",
+    disableServer: "सर्वर अक्षम करें",
   },
   usage: {
     title: "उपयोग डैशबोर्ड",

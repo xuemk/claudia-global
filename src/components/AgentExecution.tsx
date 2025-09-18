@@ -297,7 +297,8 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({ agent, onBack, c
     if (container) {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      return distanceFromBottom < 1;
+      // 增加阈值到 10px，更容易触发自动滚动
+      return distanceFromBottom < 10;
     }
     return true;
   }, [isFullscreenModalOpen]);
@@ -309,17 +310,40 @@ export const AgentExecution: React.FC<AgentExecutionProps> = ({ agent, onBack, c
     const shouldAutoScroll = !hasUserScrolled || isAtBottom();
 
     if (shouldAutoScroll) {
-      if (isFullscreenModalOpen) {
-        fullscreenRowVirtualizer.scrollToIndex(displayableMessages.length - 1, {
-          align: "end",
-          behavior: "smooth",
-        });
-      } else {
-        rowVirtualizer.scrollToIndex(displayableMessages.length - 1, {
-          align: "end",
-          behavior: "smooth",
-        });
-      }
+      // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
+      requestAnimationFrame(() => {
+        try {
+          if (isFullscreenModalOpen) {
+            fullscreenRowVirtualizer.scrollToIndex(displayableMessages.length - 1, {
+              align: "end",
+              behavior: "smooth",
+            });
+            
+            // 双重保障：确保滚动到底部
+            setTimeout(() => {
+              const container = fullscreenScrollRef.current;
+              if (container) {
+                container.scrollTop = container.scrollHeight;
+              }
+            }, 100);
+          } else {
+            rowVirtualizer.scrollToIndex(displayableMessages.length - 1, {
+              align: "end",
+              behavior: "smooth",
+            });
+            
+            // 双重保障：确保滚动到底部
+            setTimeout(() => {
+              const container = scrollContainerRef.current;
+              if (container) {
+                container.scrollTop = container.scrollHeight;
+              }
+            }, 100);
+          }
+        } catch (error) {
+          console.warn("Failed to scroll to bottom:", error);
+        }
+      });
     }
   }, [
     displayableMessages.length,

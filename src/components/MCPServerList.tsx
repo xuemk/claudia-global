@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { api, type MCPServer } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { logger } from "@/lib/logger";
@@ -55,6 +56,7 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
   const { t } = useI18n();
   const [removingServer, setRemovingServer] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState<string | null>(null);
+  const [togglingServer, setTogglingServer] = useState<string | null>(null);
   const [expandedServers, setExpandedServers] = useState<Set<string>>(new Set());
   const [copiedServer, setCopiedServer] = useState<string | null>(null);
   const [connectedServers] = useState<string[]>([]);
@@ -160,6 +162,26 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
   };
 
   /**
+   * Toggles the disabled status of a server
+   */
+  const handleToggleDisabled = async (name: string, disabled: boolean) => {
+    try {
+      setTogglingServer(name);
+      await api.mcpToggleDisabled(name, disabled);
+      
+      // Refresh the server list to get updated status
+      onRefresh();
+      
+      logger.info(`MCP server '${name}' ${disabled ? 'disabled' : 'enabled'}`);
+      
+    } catch (error) {
+      await handleError("Failed to toggle server status:", { context: error });
+    } finally {
+      setTogglingServer(null);
+    }
+  };
+
+  /**
    * Gets icon for transport type
    */
   /**
@@ -230,7 +252,9 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="group p-4 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-primary/20 transition-all overflow-hidden"
+        className={`group p-4 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-primary/20 transition-all overflow-hidden ${
+          server.disabled ? 'opacity-60 bg-muted/30' : ''
+        }`}
       >
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-4">
@@ -240,6 +264,13 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
                   {getTransportIcon(server.transport)}
                 </div>
                 <h4 className="font-medium truncate">{server.name}</h4>
+                <Switch
+                  checked={!server.disabled}
+                  onCheckedChange={(enabled) => handleToggleDisabled(server.name, !enabled)}
+                  disabled={togglingServer === server.name}
+                  variant="status-colors"
+                  className="flex-shrink-0"
+                />
                 {server.status?.running && (
                   <Badge
                     variant="outline"
@@ -247,6 +278,14 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
                   >
                     <CheckCircle className="h-3 w-3" />
                     {t.mcp.running}
+                  </Badge>
+                )}
+                {server.disabled && (
+                  <Badge
+                    variant="outline"
+                    className="gap-1 flex-shrink-0 border-red-500/50 text-red-600 bg-red-500/10"
+                  >
+                    {t.mcp.disabled}
                   </Badge>
                 )}
               </div>
@@ -299,8 +338,9 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => handleTestConnection(server.name)}
-                disabled={testingServer === server.name}
+                disabled={testingServer === server.name || server.disabled}
                 className="hover:bg-green-500/10 hover:text-green-600"
+                title={server.disabled ? t.mcp.serverDisabledCannotTest : t.mcp.testConnection}
               >
                 {testingServer === server.name ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

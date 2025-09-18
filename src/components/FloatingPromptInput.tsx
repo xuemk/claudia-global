@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Maximize2, Minimize2, ChevronUp, Sparkles, Zap, Square, Brain } from "lucide-react";
+import { Send, Maximize2, Minimize2, ChevronUp, Sparkles, Square, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover } from "@/components/ui/popover";
@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { FilePicker } from "./FilePicker";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { ImagePreview } from "./ImagePreview";
-import { useI18n } from "@/lib/i18n";
+// import { useI18n } from "@/lib/i18n";
 import { type FileEntry, type SlashCommand, type ModelInfo, api } from "@/lib/api";
 import { type ClaudeModel } from "@/types/models";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -191,7 +191,7 @@ const FloatingPromptInputInner = (
   }: FloatingPromptInputProps,
   ref: React.Ref<FloatingPromptInputRef>
 ) => {
-  const { t } = useI18n();
+  // const { t } = useI18n();
 
   // State for dynamic models
   const [models, setModels] = useState<Model[]>([]);

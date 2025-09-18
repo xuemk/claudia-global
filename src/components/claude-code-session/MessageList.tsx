@@ -57,8 +57,21 @@ export const MessageList: React.FC<MessageListProps> = React.memo(
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
       if (shouldAutoScrollRef.current && scrollContainerRef.current) {
-        const scrollElement = scrollContainerRef.current;
-        scrollElement.scrollTop = scrollElement.scrollHeight;
+        // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
+        requestAnimationFrame(() => {
+          const scrollElement = scrollContainerRef.current;
+          if (scrollElement) {
+            // 强制滚动到最底部
+            scrollElement.scrollTop = scrollElement.scrollHeight;
+            
+            // 确保真正滚动到位
+            setTimeout(() => {
+              if (scrollElement) {
+                scrollElement.scrollTop = scrollElement.scrollHeight;
+              }
+            }, 50);
+          }
+        });
       }
     }, [messages]);
 
@@ -75,7 +88,7 @@ export const MessageList: React.FC<MessageListProps> = React.memo(
       const isAtBottom =
         Math.abs(
           scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight
-        ) < 50;
+        ) < 20; // 增加阈值到 20px，更容易触发自动滚动
 
       if (!isAtBottom) {
         userHasScrolledRef.current = true;

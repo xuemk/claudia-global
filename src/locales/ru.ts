@@ -511,6 +511,10 @@ export const ru: Translations = {
     importedServersPartial: "Импортировано {imported} серверов, не удалось импортировать {failed}",
     mcpManagerTitle: "MCP серверы",
     mcpManagerSubtitle: "Управление серверами протокола контекста модели",
+    serverDisabledCannotTest: "Сервер отключен, невозможно протестировать соединение",
+    toggleServerStatus: "Переключить статус сервера",
+    enableServer: "Включить сервер",
+    disableServer: "Отключить сервер",
   },
 
   usage: {

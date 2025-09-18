@@ -506,6 +506,10 @@ export const ja: Translations = {
     importedServersPartial: "{imported}個のサーバーがインポートされ、{failed}個が失敗しました",
     mcpManagerTitle: "MCPサーバー",
     mcpManagerSubtitle: "モデルコンテキストプロトコルサーバーを管理",
+    serverDisabledCannotTest: "サーバーが無効です。接続テストできません",
+    toggleServerStatus: "サーバー状態を切り替え",
+    enableServer: "サーバーを有効化",
+    disableServer: "サーバーを無効化",
   },
 
   usage: {

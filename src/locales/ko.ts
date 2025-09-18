@@ -505,6 +505,10 @@ export const ko: Translations = {
     importedServersPartial: "{imported}개의 서버를 가져왔으며, {failed}개 실패",
     mcpManagerTitle: "MCP 서버",
     mcpManagerSubtitle: "모델 컨텍스트 프로토콜 서버 관리",
+    serverDisabledCannotTest: "서버가 비활성화되어 있어 연결을 테스트할 수 없습니다",
+    toggleServerStatus: "서버 상태 전환",
+    enableServer: "서버 활성화",
+    disableServer: "서버 비활성화",
   },
 
   usage: {

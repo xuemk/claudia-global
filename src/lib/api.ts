@@ -399,6 +399,8 @@ export interface MCPServer {
   scope: string;
   /** Whether the server is currently active */
   is_active: boolean;
+  /** Whether the server is disabled */
+  disabled?: boolean;
   /** Server status */
   status: ServerStatus;
 }
@@ -429,6 +431,8 @@ export interface MCPServerConfig {
   command: string;
   args: string[];
   env: Record<string, string>;
+  /** Whether the server is disabled */
+  disabled?: boolean;
 }
 
 /**
@@ -1536,6 +1540,18 @@ export const api = {
       return await invoke<string>("mcp_remove", { name });
     } catch (error) {
       logger.error("Failed to remove MCP server:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Toggles the disabled status of an MCP server
+   */
+  async mcpToggleDisabled(name: string, disabled: boolean, projectPath?: string): Promise<string> {
+    try {
+      return await invoke<string>("mcp_toggle_disabled", { name, disabled, projectPath });
+    } catch (error) {
+      logger.error("Failed to toggle MCP server disabled status:", error);
       throw error;
     }
   },

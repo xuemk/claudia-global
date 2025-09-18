@@ -612,42 +612,34 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
 
   /**
    * Toggle environment variable group enabled state
+   * 实现互斥逻辑：同时只能启用一个环境变量组
    */
   const toggleGroupEnabled = async (groupId: number, enabled: boolean) => {
     try {
       const group = envGroups.find(g => g.id === groupId);
       if (!group) return;
 
-      // 如果启用当前组，需要检查并禁用有冲突键的其他组
+      // 如果启用当前组，禁用所有其他组（实现真正的互斥）
       if (enabled) {
-        const currentGroupVars = envVars.filter(v => v.group_id === groupId);
-        const currentGroupKeys = new Set(currentGroupVars.map(v => v.key.trim()).filter(key => key));
+        // 获取所有其他启用的组
+        const otherEnabledGroups = envGroups.filter(g => g.id !== groupId && g.enabled);
         
-        // 检查其他启用的组是否有冲突键
-        const conflictingGroups = envGroups.filter(g => 
-          g.id !== groupId && g.enabled && 
-          envVars.some(v => v.group_id === g.id && currentGroupKeys.has(v.key.trim()))
-        );
-        
-        // 检查未分组变量是否有冲突键
-        const ungroupedVars = envVars.filter(v => !v.group_id);
-        const hasUngroupedConflict = ungroupedVars.some(v => currentGroupKeys.has(v.key.trim()));
-        
-        // 禁用冲突的分组
-        for (const conflictGroup of conflictingGroups) {
+        // 禁用所有其他组
+        for (const otherGroup of otherEnabledGroups) {
           await api.updateEnvironmentVariableGroup(
-            conflictGroup.id!,
-            conflictGroup.name,
-            conflictGroup.description,
-            false, // 禁用冲突组
-            conflictGroup.sort_order
+            otherGroup.id!,
+            otherGroup.name,
+            otherGroup.description,
+            false, // 禁用其他组
+            otherGroup.sort_order
           );
         }
         
-        // 如果有未分组变量冲突，禁用冲突的未分组变量
-        if (hasUngroupedConflict) {
+        // 禁用所有未分组变量（确保完全互斥）
+        const ungroupedVars = envVars.filter(v => !v.group_id && v.enabled);
+        if (ungroupedVars.length > 0) {
           const updatedVars = envVars.map(v => {
-            if (!v.group_id && currentGroupKeys.has(v.key.trim())) {
+            if (!v.group_id) {
               return { ...v, enabled: false };
             }
             return v;
@@ -658,14 +650,15 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
           await api.saveEnvironmentVariables(updatedVars);
         }
         
-        // 更新组状态
+        // 更新组状态：启用当前组，禁用所有其他组
         setEnvGroups(groups => 
           groups.map(g => {
             if (g.id === groupId) return { ...g, enabled: true };
-            if (conflictingGroups.some(cg => cg.id === g.id)) return { ...g, enabled: false };
-            return g;
+            return { ...g, enabled: false };
           })
         );
+        
+        logger.info(`Enabled group ${group.name}, disabled ${otherEnabledGroups.length} other groups and all ungrouped variables`);
       }
 
       // 更新当前组
@@ -757,41 +750,34 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
 
   /**
    * 处理未分组变量的启用/禁用，实现与分组变量的互斥
+   * 启用任意未分组变量时禁用所有组
    */
   const handleUngroupedVariableToggle = async (key: string, enabled: boolean) => {
     if (!enabled) return;
 
     try {
-      // 查找有相同键的启用分组
-      const conflictingGroups = envGroups.filter(g => 
-        g.enabled && 
-        envVars.some(v => v.group_id === g.id && v.key.trim() === key)
-      );
+      // 启用未分组变量时，禁用所有启用的组（实现真正的互斥）
+      const enabledGroups = envGroups.filter(g => g.enabled);
 
-      // 禁用冲突的分组
-      for (const conflictGroup of conflictingGroups) {
+      // 禁用所有启用的组
+      for (const group of enabledGroups) {
         await api.updateEnvironmentVariableGroup(
-          conflictGroup.id!,
-          conflictGroup.name,
-          conflictGroup.description,
+          group.id!,
+          group.name,
+          group.description,
           false,
-          conflictGroup.sort_order
+          group.sort_order
         );
       }
 
       // 更新组状态
-      if (conflictingGroups.length > 0) {
+      if (enabledGroups.length > 0) {
         setEnvGroups(groups => 
-          groups.map(g => {
-            if (conflictingGroups.some(cg => cg.id === g.id)) {
-              return { ...g, enabled: false };
-            }
-            return g;
-          })
+          groups.map(g => ({ ...g, enabled: false }))
         );
       }
 
-      logger.info(`Enabled ungrouped variable ${key}, disabled ${conflictingGroups.length} conflicting groups`);
+      logger.info(`Enabled ungrouped variable ${key}, disabled ${enabledGroups.length} groups`);
     } catch (error) {
       logger.error("Failed to handle ungrouped variable toggle:", error);
     }
@@ -799,42 +785,31 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
 
   /**
    * 切换未分组变量的整体启用状态
+   * 实现互斥逻辑：启用未分组变量时禁用所有组
    */
   const toggleUngroupedEnabled = async (enabled: boolean) => {
     try {
-      const ungroupedVars = envVars.filter(v => !v.group_id);
+      // const ungroupedVars = envVars.filter(v => !v.group_id);
       
       if (enabled) {
-        // 启用未分组变量时，需要检查并禁用有冲突键的分组
-        const ungroupedKeys = new Set(ungroupedVars.map(v => v.key.trim()).filter(key => key));
-        
-        const conflictingGroups = envGroups.filter(g => 
-          g.enabled && 
-          envVars.some(v => v.group_id === g.id && ungroupedKeys.has(v.key.trim()))
-        );
+        // 启用未分组变量时，禁用所有启用的组（实现真正的互斥）
+        const enabledGroups = envGroups.filter(g => g.enabled);
 
-        // 禁用冲突的分组
-        for (const conflictGroup of conflictingGroups) {
+        // 禁用所有启用的组
+        for (const group of enabledGroups) {
           await api.updateEnvironmentVariableGroup(
-            conflictGroup.id!,
-            conflictGroup.name,
-            conflictGroup.description,
+            group.id!,
+            group.name,
+            group.description,
             false,
-            conflictGroup.sort_order
+            group.sort_order
           );
         }
 
-        // 更新组状态
-        if (conflictingGroups.length > 0) {
-          setEnvGroups(groups => 
-            groups.map(g => {
-              if (conflictingGroups.some(cg => cg.id === g.id)) {
-                return { ...g, enabled: false };
-              }
-              return g;
-            })
-          );
-        }
+        // 更新组状态：禁用所有组
+        setEnvGroups(groups => 
+          groups.map(g => ({ ...g, enabled: false }))
+        );
 
         // 启用所有未分组变量
         const updatedVars = envVars.map(v => {
@@ -848,7 +823,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
         // 更新数据库
         await api.saveEnvironmentVariables(updatedVars);
 
-        logger.info(`Enabled ungrouped variables, disabled ${conflictingGroups.length} conflicting groups`);
+        logger.info(`Enabled ungrouped variables, disabled ${enabledGroups.length} groups`);
       } else {
         // 禁用所有未分组变量
         const updatedVars = envVars.map(v => {
@@ -1431,7 +1406,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
                                 <Switch
                                   checked={group.enabled}
                                   onCheckedChange={(enabled) => toggleGroupEnabled(group.id!, enabled)}
-                                  variant="high-contrast"
+                                  variant="status-colors"
                                   className="flex-shrink-0"
                                 />
                                 <h4 className="font-medium">{group.name}</h4>
@@ -1546,7 +1521,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
                                 <Switch
                                   checked={ungroupedEnabled}
                                   onCheckedChange={(enabled) => toggleUngroupedEnabled(enabled)}
-                                  variant="high-contrast"
+                                  variant="status-colors"
                                   className="flex-shrink-0"
                                 />
                                 <h4 className="font-medium">{t.settings.ungroupedVariables}</h4>

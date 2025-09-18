@@ -504,6 +504,10 @@ export const it: Translations = {
     importedServersPartial: "Importati {imported} server, {failed} falliti",
     mcpManagerTitle: "Server MCP",
     mcpManagerSubtitle: "Gestisci i server del Protocollo di Contesto del Modello",
+    serverDisabledCannotTest: "Il server è disabilitato, impossibile testare la connessione",
+    toggleServerStatus: "Attiva/disattiva stato del server",
+    enableServer: "Abilita server",
+    disableServer: "Disabilita server",
   },
 
   usage: {

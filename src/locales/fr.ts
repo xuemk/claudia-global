@@ -516,6 +516,10 @@ export const fr: Translations = {
     importedServersPartial: "{imported} serveurs importés, {failed} échecs",
     mcpManagerTitle: "Serveurs MCP",
     mcpManagerSubtitle: "Gérer les serveurs du Protocole de Contexte de Modèle",
+    serverDisabledCannotTest: "Le serveur est désactivé, impossible de tester la connexion",
+    toggleServerStatus: "Basculer l'état du serveur",
+    enableServer: "Activer le serveur",
+    disableServer: "Désactiver le serveur",
   },
 
   usage: {

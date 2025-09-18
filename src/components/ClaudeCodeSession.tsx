@@ -417,9 +417,31 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (displayableMessages.length > 0) {
-      rowVirtualizer.scrollToIndex(displayableMessages.length - 1, {
-        align: "end",
-        behavior: "smooth",
+      // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
+      requestAnimationFrame(() => {
+        try {
+          rowVirtualizer.scrollToIndex(displayableMessages.length - 1, {
+            align: "end",
+            behavior: "smooth",
+          });
+          
+          // 双重保障：确保真正滚动到最底部
+          setTimeout(() => {
+            const container = parentRef.current;
+            if (container) {
+              const { scrollHeight, clientHeight } = container;
+              const targetScrollTop = scrollHeight - clientHeight;
+              if (container.scrollTop < targetScrollTop - 10) {
+                container.scrollTo({
+                  top: scrollHeight,
+                  behavior: "smooth",
+                });
+              }
+            }
+          }, 100);
+        } catch (error) {
+          logger.warn("Failed to scroll to bottom:", error);
+        }
       });
     }
   }, [displayableMessages.length, rowVirtualizer]);

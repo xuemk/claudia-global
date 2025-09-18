@@ -456,6 +456,10 @@ export interface Translations {
     requestCount: string;
     errorCount: string;
     averageResponseTime: string;
+    serverDisabledCannotTest: string;
+    toggleServerStatus: string;
+    enableServer: string;
+    disableServer: string;
     // 添加缺失的MCP翻译键
     serverNameRequired: string;
     commandRequired: string;

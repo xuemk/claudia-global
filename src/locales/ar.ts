@@ -493,6 +493,10 @@ export const ar: Translations = {
     importedServersPartial: "تم استيراد {imported} خادم، فشل {failed}",
     mcpManagerTitle: "خوادم MCP",
     mcpManagerSubtitle: "إدارة خوادم بروتوكول سياق النموذج",
+    serverDisabledCannotTest: "الخادم معطل، لا يمكن اختبار الاتصال",
+    toggleServerStatus: "تبديل حالة الخادم",
+    enableServer: "تفعيل الخادم",
+    disableServer: "تعطيل الخادم",
   },
 
   usage: {

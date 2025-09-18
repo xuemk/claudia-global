@@ -71,7 +71,8 @@ export function SessionOutputViewer({ session, onClose, className }: SessionOutp
     if (container) {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      return distanceFromBottom < 1;
+      // 增加阈值到 10px，更容易触发自动滚动
+      return distanceFromBottom < 10;
     }
     return true;
   }, [isFullscreen]);
@@ -81,10 +82,21 @@ export function SessionOutputViewer({ session, onClose, className }: SessionOutp
    */
   const scrollToBottom = useCallback(() => {
     if (!hasUserScrolled) {
-      const endRef = isFullscreen ? fullscreenMessagesEndRef.current : outputEndRef.current;
-      if (endRef) {
-        endRef.scrollIntoView({ behavior: "smooth" });
-      }
+      // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
+      requestAnimationFrame(() => {
+        const endRef = isFullscreen ? fullscreenMessagesEndRef.current : outputEndRef.current;
+        if (endRef) {
+          endRef.scrollIntoView({ behavior: "smooth" });
+          
+          // 双重保障：确保滚动到底部
+          setTimeout(() => {
+            const container = isFullscreen ? fullscreenScrollRef.current : scrollAreaRef.current;
+            if (container) {
+              container.scrollTop = container.scrollHeight;
+            }
+          }, 100);
+        }
+      });
     }
   }, [hasUserScrolled, isFullscreen]);
 

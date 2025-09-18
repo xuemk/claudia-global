@@ -372,7 +372,7 @@ pub fn init_database(app: &AppHandle) -> SqliteResult<Connection> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
             description TEXT,
-            enabled BOOLEAN NOT NULL DEFAULT 1,
+            enabled BOOLEAN NOT NULL DEFAULT 0,
             sort_order INTEGER DEFAULT 0,
             is_system BOOLEAN NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -3283,8 +3283,8 @@ pub async fn create_environment_variable_group(
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     
     conn.execute(
-        "INSERT INTO environment_variable_groups (name, description, sort_order, is_system) VALUES (?1, ?2, ?3, ?4)",
-        params![name, description, sort_order.unwrap_or(0), false],
+        "INSERT INTO environment_variable_groups (name, description, enabled, sort_order, is_system) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![name, description, false, sort_order.unwrap_or(0), false],
     )
     .map_err(|e| e.to_string())?;
     
