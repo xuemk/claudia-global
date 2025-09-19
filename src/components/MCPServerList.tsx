@@ -6,7 +6,6 @@ import {
   Terminal,
   Trash2,
   Play,
-  CheckCircle,
   Loader2,
   RefreshCw,
   FolderOpen,
@@ -18,7 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+
 import { api, type MCPServer } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { logger } from "@/lib/logger";
@@ -56,7 +55,7 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
   const { t } = useI18n();
   const [removingServer, setRemovingServer] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState<string | null>(null);
-  const [togglingServer, setTogglingServer] = useState<string | null>(null);
+
   const [expandedServers, setExpandedServers] = useState<Set<string>>(new Set());
   const [copiedServer, setCopiedServer] = useState<string | null>(null);
   const [connectedServers] = useState<string[]>([]);
@@ -161,25 +160,7 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
     }
   };
 
-  /**
-   * Toggles the disabled status of a server
-   */
-  const handleToggleDisabled = async (name: string, disabled: boolean) => {
-    try {
-      setTogglingServer(name);
-      await api.mcpToggleDisabled(name, disabled);
-      
-      // Refresh the server list to get updated status
-      onRefresh();
-      
-      logger.info(`MCP server '${name}' ${disabled ? 'disabled' : 'enabled'}`);
-      
-    } catch (error) {
-      await handleError("Failed to toggle server status:", { context: error });
-    } finally {
-      setTogglingServer(null);
-    }
-  };
+
 
   /**
    * Gets icon for transport type
@@ -264,22 +245,18 @@ export const MCPServerList: React.FC<MCPServerListProps> = ({
                   {getTransportIcon(server.transport)}
                 </div>
                 <h4 className="font-medium truncate">{server.name}</h4>
-                <Switch
-                  checked={!server.disabled}
-                  onCheckedChange={(enabled) => handleToggleDisabled(server.name, !enabled)}
-                  disabled={togglingServer === server.name}
-                  variant="status-colors"
-                  className="flex-shrink-0"
+                <span
+                  className={`ml-2 h-2.5 w-2.5 rounded-full ${
+                    (server.command?.includes("Connected") || server.status?.running)
+                      ? 'bg-green-500'
+                      : 'bg-red-500'
+                  }`}
+                  title={
+                    (server.command?.includes("Connected") || server.status?.running)
+                      ? "Connected"
+                      : "Disconnected"
+                  }
                 />
-                {server.status?.running && (
-                  <Badge
-                    variant="outline"
-                    className="gap-1 flex-shrink-0 border-green-500/50 text-green-600 bg-green-500/10"
-                  >
-                    <CheckCircle className="h-3 w-3" />
-                    {t.mcp.running}
-                  </Badge>
-                )}
                 {server.disabled && (
                   <Badge
                     variant="outline"

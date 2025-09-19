@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { getClaudeSyntaxTheme } from "@/lib/claudeSyntaxTheme";
 import { useTheme } from "@/hooks";
+import { useMessageDisplayMode, type MessageDisplayMode } from "@/hooks/useMessageDisplayMode";
 import type { ClaudeStreamMessage } from "./AgentExecution";
 import {
   TodoWidget,
@@ -78,6 +79,11 @@ const StreamMessageComponent: React.FC<StreamMessageProps> = ({
   // Get current theme
   const { theme } = useTheme();
   const syntaxTheme = getClaudeSyntaxTheme(theme);
+  
+  // Get message display mode
+  const { mode: rawMode } = useMessageDisplayMode();
+  const mode: MessageDisplayMode = rawMode;
+  
   // Extract all tool results from stream messages
   useEffect(() => {
     const results = new Map<string, unknown>();
@@ -123,16 +129,26 @@ const StreamMessageComponent: React.FC<StreamMessageProps> = ({
       );
     }
 
-    // System initialization message
+    // System initialization message - only show the first one in the session
     if (message.type === "system" && message.subtype === "init") {
-      return (
-        <SystemInitializedWidget
-          sessionId={message.session_id}
-          model={message.model}
-          cwd={message.cwd}
-          tools={message.tools}
-        />
-      );
+      // Check if this is the first system init message in the stream
+      const isFirstSystemInit = streamMessages.findIndex(
+        (msg) => msg.type === "system" && msg.subtype === "init"
+      ) === streamMessages.findIndex((msg) => msg === message);
+      
+      if (isFirstSystemInit) {
+        return (
+          <SystemInitializedWidget
+            sessionId={message.session_id}
+            model={message.model}
+            cwd={message.cwd}
+            tools={message.tools}
+          />
+        );
+      }
+      
+      // Skip rendering for subsequent system init messages
+      return null;
     }
 
     // Assistant message
@@ -210,6 +226,11 @@ const StreamMessageComponent: React.FC<StreamMessageProps> = ({
 
                     // Function to render the appropriate tool widget
                     const renderToolWidget = () => {
+                      // Skip rendering tool widgets if mode is 'tool_results_only'
+                      const shouldSkipWidget = String(mode) === 'tool_results_only';
+                      if (shouldSkipWidget) {
+                        return null;
+                      }
                       // Task tool - for sub-agent tasks
                       if (toolName === "task" && input) {
                         renderedSomething = true;
@@ -404,6 +425,12 @@ const StreamMessageComponent: React.FC<StreamMessageProps> = ({
                     const contentObj = content as Record<string, unknown>;
                     // Tool result
                     if (contentObj.type === "tool_result") {
+                      // Skip rendering tool results if mode is 'tool_calls_only'
+                      const shouldSkipResult = String(mode) === 'tool_calls_only';
+                      if (shouldSkipResult) {
+                        return null;
+                      }
+                      
                       // Skip duplicate tool_result if a dedicated widget is present
                       let hasCorrespondingWidget = false;
                       if (contentObj.tool_use_id && streamMessages) {
@@ -447,7 +474,25 @@ const StreamMessageComponent: React.FC<StreamMessageProps> = ({
                         }
                       }
 
-                      if (hasCorrespondingWidget) {
+                      // Apply message display mode filtering
+                      const modeString = String(mode);
+                      const shouldSkipForMode = (() => {
+                        if (modeString === 'tool_calls_only') {
+                          // Skip all tool results when only showing tool calls
+                          return true;
+                        } else if (modeString === 'tool_results_only') {
+                          // Show all tool results when only showing results
+                          return false;
+                        } else if (modeString === 'both') {
+                          // In 'both' mode, show everything including duplicates
+                          return false;
+                        } else {
+                          // Default: skip duplicate tool results if widget exists
+                          return hasCorrespondingWidget;
+                        }
+                      })();
+                      
+                      if (shouldSkipForMode) {
                         return null;
                       }
                       // Extract the actual content string

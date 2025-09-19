@@ -203,6 +203,12 @@ export interface Translations {
     includeCoAuthoredByDesc: string;
     verboseOutput: string;
     verboseOutputDesc: string;
+    messageDisplayMode: string;
+    messageDisplayModeDesc: string;
+    showToolCallsOnly: string;
+    showBoth: string;
+    showToolCallsOnlyDesc: string;
+    showBothDesc: string;
     chatRetention: string;
     chatRetentionDesc: string;
     claudeInstallation: string;

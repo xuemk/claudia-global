@@ -131,6 +131,9 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
   const [analyticsConsented, setAnalyticsConsented] = useState(false);
   const [showAnalyticsConsent, setShowAnalyticsConsent] = useState(false);
   const trackEvent = useTrackEvent();
+
+  // Message display mode state
+  const [messageDisplayMode, setMessageDisplayMode] = useState<'both' | 'tool_calls_only'>('both');
   // Load settings on mount
   useEffect(() => {
     console.log("Settings component mounted, loading settings...");
@@ -344,6 +347,12 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
       // Load font scale
       setFontScale(fontScaleManager.getCurrentScale());
       setCustomMultiplierInput(fontScaleManager.getCustomMultiplier().toString());
+
+      // Load message display mode from settings or localStorage
+      const savedDisplayMode = loadedSettings.messageDisplayMode || localStorage.getItem('messageDisplayMode') || 'both';
+      // Handle legacy 'tool_results_only' by converting to 'tool_calls_only'
+      const normalizedMode = (savedDisplayMode as string) === 'tool_results_only' ? 'tool_calls_only' : savedDisplayMode;
+      setMessageDisplayMode(normalizedMode as 'both' | 'tool_calls_only');
     } catch (err) {
       await handleError("Failed to load settings:", { context: err });
       setError(t.settings.failedToLoadSettings);
@@ -365,6 +374,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
       // Build the settings object (no longer includes env - it's in database)
       const updatedSettings: ClaudeSettings = {
         ...settings,
+        messageDisplayMode,
         permissions: {
           allow: allowRules.map(rule => rule.value).filter(v => v && String(v).trim()),
           deny: denyRules.map(rule => rule.value).filter(v => v && String(v).trim()),
@@ -454,6 +464,9 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
         }
         setFontScaleChanged(false);
       }
+
+      // Save message display mode to localStorage
+      localStorage.setItem('messageDisplayMode', messageDisplayMode);
 
       await api.saveClaudeSettings(updatedSettings);
       setSettings(updatedSettings);
@@ -1128,6 +1141,42 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
                         />
                       </div>
 
+                      {/* Message Display Mode */}
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">{t.settings.messageDisplayMode}</Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t.settings.messageDisplayModeDesc}
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          {[
+                            { value: 'both', label: t.settings.showBoth, desc: t.settings.showBothDesc },
+                            { value: 'tool_calls_only', label: t.settings.showToolCallsOnly, desc: t.settings.showToolCallsOnlyDesc },
+                          ].map((option) => (
+                            <div key={option.value} className="flex items-start space-x-3">
+                              <input
+                                type="radio"
+                                id={`display-${option.value}`}
+                                name="messageDisplayMode"
+                                value={option.value}
+                                checked={messageDisplayMode === option.value}
+                                onChange={(e) => {
+                                  setMessageDisplayMode(e.target.value as 'both' | 'tool_calls_only');
+                                }}
+                                className="mt-1 w-4 h-4 text-primary bg-background border-border focus:ring-ring focus:ring-2"
+                              />
+                              <div className="flex-1">
+                                <Label htmlFor={`display-${option.value}`} className="text-sm font-medium">
+                                  {option.label}
+                                </Label>
+                                <p className="text-xs text-muted-foreground">{option.desc}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Cleanup Period */}
                       <div className="space-y-2">
                         <Label htmlFor="cleanup">{t.settings.chatRetention}</Label>
@@ -1618,9 +1667,23 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, className }) => {
                         <li>
                           •{" "}
                           <code className="px-1 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                            ANTHROPIC_MODEL
+                            MID_&#123;序号&#125;
                           </code>{" "}
-                          - {t.settings.customModelName}
+                          - 模型的唯一标识符（必需）
+                        </li>
+                        <li>
+                          •{" "}
+                          <code className="px-1 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            MNAME_&#123;序号&#125;
+                          </code>{" "}
+                          - 模型的显示名称（可选，默认使用ID）
+                        </li>
+                        <li>
+                          •{" "}
+                          <code className="px-1 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            MDESC_&#123;序号&#125;
+                          </code>{" "}
+                          - 模型的描述信息（可选）
                         </li>
                         <li>
                           •{" "}

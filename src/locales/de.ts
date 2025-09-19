@@ -320,6 +320,12 @@ export const de: Translations = {
     ungroupedVariables: "Nicht gruppierte Variablen",
     duplicateKeyInUngroupedVariables: "Doppelter Schlüssel in nicht gruppierten Variablen",
     cssColorValuesDesc: "Verwenden Sie CSS-Farbwerte (hex, rgb, oklch, etc.). Änderungen werden sofort angewendet.",
+    messageDisplayMode: "Nachrichten-Anzeigemodus",
+    messageDisplayModeDesc: "Wählen Sie, wie Unterhaltungsabschlussnachrichten angezeigt werden",
+    showToolCallsOnly: "Kompakter Modus",
+    showBoth: "Vollständiger Modus",
+    showToolCallsOnlyDesc: "Nur eine Ausführungsabschlussnachricht anzeigen, Duplikate vermeiden",
+    showBothDesc: "Vollständige Unterhaltungsantwort und Ausführungsstatus anzeigen (kann Duplikate enthalten)",
   },
 
   claude: {

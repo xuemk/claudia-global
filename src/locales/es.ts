@@ -317,6 +317,12 @@ export const es: Translations = {
     ungroupedVariables: "Variables sin agrupar",
     duplicateKeyInUngroupedVariables: "Clave duplicada en variables sin agrupar",
     cssColorValuesDesc: "Use valores de color CSS (hex, rgb, oklch, etc.). Los cambios se aplican inmediatamente.",
+    messageDisplayMode: "Modo de visualización de mensajes",
+    messageDisplayModeDesc: "Elige cómo mostrar los mensajes de finalización de conversación",
+    showToolCallsOnly: "Modo conciso",
+    showBoth: "Modo completo",
+    showToolCallsOnlyDesc: "Mostrar solo un mensaje de finalización de ejecución, evitar duplicados",
+    showBothDesc: "Mostrar respuesta completa de conversación y estado de ejecución (puede tener duplicados)",
   },
 
   claude: {

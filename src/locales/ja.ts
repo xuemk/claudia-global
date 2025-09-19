@@ -313,6 +313,12 @@ export const ja: Translations = {
     ungroupedVariables: "グループ化されていない変数",
     duplicateKeyInUngroupedVariables: "グループ化されていない変数に重複キーがあります",
     cssColorValuesDesc: "CSS色値（hex、rgb、oklch等）を使用してください。変更は即座に適用されます。",
+    messageDisplayMode: "メッセージ表示モード",
+    messageDisplayModeDesc: "会話完了メッセージの表示方法を選択",
+    showToolCallsOnly: "簡潔モード",
+    showBoth: "完全モード",
+    showToolCallsOnlyDesc: "実行完了メッセージを1つだけ表示し、重複を避ける",
+    showBothDesc: "完全な会話応答と実行ステータスを表示（重複する場合があります）",
   },
 
   claude: {

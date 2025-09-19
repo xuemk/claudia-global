@@ -198,38 +198,60 @@ const FloatingPromptInputInner = (
   const [modelsLoading, setModelsLoading] = useState(true);
 
   // Load available models from enabled environment variable groups
-  useEffect(() => {
-    const loadModels = async () => {
-      try {
-        setModelsLoading(true);
-        const availableModels = await api.getAvailableModels();
-        
-        if (availableModels.length === 0) {
-          logger.warn("No models found in enabled environment variable groups");
-          setModels([]);
-        } else {
-          // Convert ModelInfo to Model format with default icons
-          const convertedModels: Model[] = availableModels.map((modelInfo: ModelInfo) => ({
-            id: modelInfo.id as ClaudeModel, // Cast to ClaudeModel for now
-            name: modelInfo.name,
-            description: modelInfo.description || `Model: ${modelInfo.id}`,
-            icon: <Sparkles className="h-4 w-4" />, // Default icon for all dynamic models
-          }));
-          
-          setModels(convertedModels);
-          logger.info(`Loaded ${convertedModels.length} models from enabled environment variable groups`);
-        }
-      } catch (error) {
-        logger.error("Failed to load available models:", error);
-        // On error, keep empty models array
+  const loadModels = useCallback(async () => {
+    try {
+      setModelsLoading(true);
+      const availableModels = await api.getAvailableModels();
+
+      if (availableModels.length === 0) {
+        logger.warn("No models found in enabled environment variable groups");
         setModels([]);
-      } finally {
-        setModelsLoading(false);
+      } else {
+        // Convert ModelInfo to Model format with default icons
+        const convertedModels: Model[] = availableModels.map((modelInfo: ModelInfo) => ({
+          id: modelInfo.id as ClaudeModel, // Cast to ClaudeModel for now
+          name: modelInfo.name,
+          description: modelInfo.description || `Model: ${modelInfo.id}`,
+          icon: <Sparkles className="h-4 w-4" />, // Default icon for all dynamic models
+        }));
+
+        setModels(convertedModels);
+        logger.info(`Loaded ${convertedModels.length} models from enabled environment variable groups`);
       }
+    } catch (error) {
+      logger.error("Failed to load available models:", error);
+      // On error, keep empty models array
+      setModels([]);
+    } finally {
+      setModelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadModels();
+  }, [loadModels]);
+
+  // Listen for environment refresh events
+  useEffect(() => {
+    const handleEnvironmentRefresh = () => {
+      logger.debug("[FloatingPromptInput] Environment refresh detected, reloading models");
+      loadModels();
     };
 
-    loadModels();
-  }, []);
+    const handleClaudeVersionChanged = () => {
+      logger.debug("[FloatingPromptInput] Claude version changed, reloading models");
+      loadModels();
+    };
+
+    // Listen for environment refresh events
+    window.addEventListener('refresh-environment', handleEnvironmentRefresh);
+    window.addEventListener('claude-version-changed', handleClaudeVersionChanged);
+
+    return () => {
+      window.removeEventListener('refresh-environment', handleEnvironmentRefresh);
+      window.removeEventListener('claude-version-changed', handleClaudeVersionChanged);
+    };
+  }, [loadModels]);
 
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState<ClaudeModel>(""); // Start with empty string to force setting from dynamic models
@@ -237,14 +259,20 @@ const FloatingPromptInputInner = (
 
   // Set default model when models are loaded
   useEffect(() => {
-    if (models.length > 0 && !selectedModel) {
-      const defaultModelToUse = defaultModel && models.find(m => m.id === defaultModel)
-        ? defaultModel
-        : models[0].id;
-      setSelectedModel(defaultModelToUse);
-      logger.info(`[FloatingPromptInput] Set selected model to: ${defaultModelToUse}`);
+    if (models.length > 0) {
+      // If no selected model or current selected model is not in the new model list,
+      // set to default or first available model
+      if (!selectedModel || !models.find(m => m.id === selectedModel)) {
+        const defaultModelToUse = defaultModel && models.find(m => m.id === defaultModel)
+          ? defaultModel
+          : models[0].id;
+        setSelectedModel(defaultModelToUse);
+        logger.info(`[FloatingPromptInput] Set selected model to: ${defaultModelToUse} (reason: ${!selectedModel ? 'no model selected' : 'selected model not available'})`);
+      } else {
+        logger.info(`[FloatingPromptInput] Keeping selected model: ${selectedModel}`);
+      }
     }
-  }, [models, defaultModel, selectedModel]);
+  }, [models, defaultModel]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [thinkingModePickerOpen, setThinkingModePickerOpen] = useState(false);

@@ -318,6 +318,12 @@ export const ru: Translations = {
     ungroupedVariables: "Несгруппированные переменные",
     duplicateKeyInUngroupedVariables: "Дублирующийся ключ в несгруппированных переменных",
     cssColorValuesDesc: "Используйте значения CSS цветов (hex, rgb, oklch и т.д.). Изменения применяются немедленно.",
+    messageDisplayMode: "Режим отображения сообщений",
+    messageDisplayModeDesc: "Выберите способ отображения сообщений завершения разговора",
+    showToolCallsOnly: "Краткий режим",
+    showBoth: "Полный режим",
+    showToolCallsOnlyDesc: "Показывать только одно сообщение о завершении выполнения, избегать дубликатов",
+    showBothDesc: "Показывать полный ответ разговора и статус выполнения (может содержать дубликаты)",
   },
 
   claude: {

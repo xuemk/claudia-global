@@ -314,6 +314,12 @@ export const hi: Translations = {
     ungroupedVariables: "असमूहीकृत चर",
     duplicateKeyInUngroupedVariables: "असमूहीकृत चरों में डुप्लिकेट कुंजी",
     cssColorValuesDesc: "CSS रंग मान (hex, rgb, oklch आदि) का उपयोग करें। परिवर्तन तुरंत लागू होते हैं।",
+    messageDisplayMode: "संदेश प्रदर्शन मोड",
+    messageDisplayModeDesc: "बातचीत पूर्ण होने के संदेशों को कैसे प्रदर्शित करना है चुनें",
+    showToolCallsOnly: "संक्षिप्त मोड",
+    showBoth: "पूर्ण मोड",
+    showToolCallsOnlyDesc: "केवल एक निष्पादन पूर्ण संदेश दिखाएं, डुप्लिकेट से बचें",
+    showBothDesc: "पूर्ण बातचीत प्रतिक्रिया और निष्पादन स्थिति दिखाएं (डुप्लिकेट हो सकते हैं)",
   },
 
   claude: {

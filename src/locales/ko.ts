@@ -312,6 +312,12 @@ export const ko: Translations = {
     ungroupedVariables: "그룹화되지 않은 변수",
     duplicateKeyInUngroupedVariables: "그룹화되지 않은 변수에 중복 키가 있습니다",
     cssColorValuesDesc: "CSS 색상 값(hex, rgb, oklch 등)을 사용하세요. 변경 사항이 즉시 적용됩니다.",
+    messageDisplayMode: "메시지 표시 모드",
+    messageDisplayModeDesc: "대화 완료 메시지 표시 방법 선택",
+    showToolCallsOnly: "간결 모드",
+    showBoth: "전체 모드",
+    showToolCallsOnlyDesc: "실행 완료 메시지 하나만 표시하여 중복 방지",
+    showBothDesc: "전체 대화 응답과 실행 상태 표시 (중복될 수 있음)",
   },
 
   claude: {

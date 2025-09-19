@@ -12,6 +12,7 @@ import {
   X,
   Hash,
   Command,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,7 @@ import { useI18n } from "@/lib/i18n";
 import { logger } from "@/lib/logger";
 import { handleError, handleApiError, handleValidationError } from "@/lib/errorHandler";
 import { audioNotificationManager } from "@/lib/audioNotification";
-import { useTrackEvent, useComponentMetrics, useWorkflowTracking } from "@/hooks";
+import { useTrackEvent, useComponentMetrics, useWorkflowTracking, useMessageDisplayMode } from "@/hooks";
 
 interface ClaudeCodeSessionProps {
   /**
@@ -111,7 +112,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [rawJsonlOutput, setRawJsonlOutput] = useState<string[]>([]);
   const [copyPopoverOpen, setCopyPopoverOpen] = useState(false);
-  const [isFirstPrompt, setIsFirstPrompt] = useState(!session);
+  const [isFirstPrompt, setIsFirstPrompt] = useState(true); // Will be determined dynamically
   const [totalTokens, setTotalTokens] = useState(0);
   const [extractedSessionInfo, setExtractedSessionInfo] = useState<{
     sessionId: string;
@@ -193,12 +194,55 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
     return null;
   }, [session, extractedSessionInfo, projectPath]);
 
+  // Initialize isFirstPrompt based on session state
+  useEffect(() => {
+    // If we have a session and either have messages or a claudeSessionId,
+    // then this is not a first prompt
+    const hasExistingConversation = (session && (messages.length > 0 || claudeSessionId));
+    setIsFirstPrompt(!hasExistingConversation);
+
+    logger.debug("[ClaudeCodeSession] isFirstPrompt set to:", !hasExistingConversation, {
+      hasSession: !!session,
+      messagesCount: messages.length,
+      hasClaudeSessionId: !!claudeSessionId
+    });
+  }, [session, messages.length, claudeSessionId]);
+
+  // Get message display mode
+  const { mode: messageDisplayMode } = useMessageDisplayMode();
+
+
   // Filter out messages that shouldn't be displayed
   const displayableMessages = useMemo(() => {
     return messages.filter((message, index) => {
       // Skip meta messages that don't have meaningful content
       if (message.isMeta && !message.leafUuid && !message.summary) {
         return false;
+      }
+
+      // In non-"both" mode, filter duplicate completion messages
+      if (messageDisplayMode !== "both") {
+        // Pattern 1: Assistant message followed by result message (filter assistant to avoid duplication)
+        if (message.type === "assistant" && message.message) {
+          // Check if there's a result message after this that shows completion
+          for (let i = index + 1; i < Math.min(index + 3, messages.length); i++) {
+            const nextMsg = messages[i];
+            if (nextMsg.type === "result" && (nextMsg.result || nextMsg.error)) {
+              return false;
+            }
+          }
+        }
+
+        // Pattern 2: Multiple result messages (filter duplicates)
+        if (message.type === "result" && (message.result || message.error)) {
+          // Check if there's another result message before this
+          for (let i = Math.max(0, index - 3); i < index; i++) {
+            const prevMsg = messages[i];
+            if (prevMsg.type === "result" && (prevMsg.result || prevMsg.error)) {
+              return false;
+            }
+          }
+        }
       }
 
       // Skip user messages that only contain tool results that are already displayed
@@ -275,7 +319,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       }
       return true;
     });
-  }, [messages]);
+  }, [messages, messageDisplayMode]);
 
   const rowVirtualizer = useVirtualizer({
     count: displayableMessages.length,
@@ -613,6 +657,24 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(`Failed to select directory: ${errorMessage}`);
     }
+  };
+
+  /**
+   * Handle refreshing environment variables and model configuration
+   */
+  const handleRefreshEnvironment = () => {
+    logger.info("[ClaudeCodeSession] Environment refresh requested from dialog");
+    
+    // Dispatch events to trigger environment refresh
+    window.dispatchEvent(new CustomEvent('refresh-environment'));
+    window.dispatchEvent(new CustomEvent('claude-version-changed'));
+    
+    // Track the refresh action
+    trackEvent.featureUsed?.('environment_refresh', 'dialog_button');
+    
+    // Show a brief success message
+    // Note: Environment variables will take effect in new Claude Code sessions
+    logger.info("[ClaudeCodeSession] Environment refresh triggered - changes will apply to new sessions");
   };
 
   /**
@@ -1039,13 +1101,20 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
         });
 
         // Execute the appropriate command
-        if (effectiveSession && !isFirstPrompt) {
-          logger.debug("[ClaudeCodeSession] Resuming session:", effectiveSession.id);
+        // Determine if we should resume or start new based on:
+        // 1. Having an effective session ID
+        // 2. Having an active claudeSessionId (meaning session is already initialized)
+        // 3. Having existing messages (indicating an active conversation)
+        const shouldResume = effectiveSession &&
+          (claudeSessionId || messages.length > 0);
+
+        if (shouldResume) {
+          logger.debug("[ClaudeCodeSession] Resuming session:", effectiveSession.id, "claudeSessionId:", claudeSessionId);
           trackEvent.sessionResumed(effectiveSession.id);
           trackEvent.modelSelected(model);
           await api.resumeClaudeCode(projectPath, effectiveSession.id, prompt, model);
         } else {
-          logger.debug("[ClaudeCodeSession] Starting new session");
+          logger.debug("[ClaudeCodeSession] Starting new session (isFirstPrompt:", isFirstPrompt, ")");
           setIsFirstPrompt(false);
           trackEvent.sessionCreated(model, 'prompt_input');
           trackEvent.modelSelected(model);
@@ -1391,9 +1460,19 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       // Placeholder for window resize handling
     };
 
+    // Handle environment refresh from tab refresh button
+    const handleEnvironmentRefresh = () => {
+      logger.debug("[ClaudeCodeSession] Environment refresh requested");
+      // The environment variables will be automatically reloaded by Claude Code
+      // when starting new sessions. For existing sessions, we can add a notification.
+      if (claudeSessionId && isLoading) {
+        logger.info("[ClaudeCodeSession] Environment refresh requested during active session - changes will apply to new sessions");
+      }
+    };
 
     window.addEventListener("tab-cleanup", handleTabCleanup);
     window.addEventListener("resize", handleWindowResize);
+    window.addEventListener("refresh-environment", handleEnvironmentRefresh);
 
     return () => {
       logger.debug("[ClaudeCodeSession] Component unmounting, cleaning up listeners");
@@ -1405,6 +1484,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       // Remove the event listeners
       window.removeEventListener("tab-cleanup", handleTabCleanup);
       window.removeEventListener("resize", handleWindowResize);
+      window.removeEventListener("refresh-environment", handleEnvironmentRefresh);
 
       // Clean up listeners when component unmounts
       unlistenRefs.current.forEach((unlisten) => unlisten());
@@ -1620,6 +1700,19 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
               >
                 <Command className="h-4 w-4 mr-2" />
                 {t.sessions.commands}
+              </Button>
+            )}
+            {/* Refresh Button - placed before commands as requested */}
+            {projectPath && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshEnvironment}
+                disabled={isLoading}
+                title="刷新环境变量和模型配置"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                刷新
               </Button>
             )}
             <div className="flex items-center gap-2">

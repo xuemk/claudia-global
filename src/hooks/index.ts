@@ -23,6 +23,7 @@ export { useDebounce, useDebouncedCallback } from "./useDebounce";
 export { useApiCall } from "./useApiCall";
 export { usePagination } from "./usePagination";
 export { useTheme } from './useTheme';
+export { useMessageDisplayMode, type MessageDisplayMode } from './useMessageDisplayMode';
 export {
   useAnalytics,
   useTrackEvent,

@@ -307,6 +307,12 @@ export const ar: Translations = {
     ungroupedVariables: "متغيرات غير مجمعة",
     duplicateKeyInUngroupedVariables: "مفتاح مكرر في المتغيرات غير المجمعة",
     cssColorValuesDesc: "استخدم قيم ألوان CSS (hex، rgb، oklch، إلخ). التغييرات تطبق فوراً.",
+    messageDisplayMode: "وضع عرض الرسائل",
+    messageDisplayModeDesc: "اختر كيفية عرض رسائل إكمال المحادثة",
+    showToolCallsOnly: "الوضع المختصر",
+    showBoth: "الوضع الكامل",
+    showToolCallsOnlyDesc: "عرض رسالة إكمال تنفيذ واحدة فقط، تجنب التكرارات",
+    showBothDesc: "عرض استجابة المحادثة الكاملة وحالة التنفيذ (قد تحتوي على تكرارات)",
   },
 
   claude: {
