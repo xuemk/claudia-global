@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Popover } from '@/components/ui/popover';
 import { useI18n } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
-import { cn } from '@/lib/utils';
 
 // Lazy load heavy components
 const ClaudeCodeSession = lazy(() => import('@/components/ClaudeCodeSession').then(m => ({ default: m.ClaudeCodeSession })));
@@ -372,7 +371,6 @@ export const TabContent: React.FC = () => {
     switchToTab,
   } = useTabState();
   const [showMobileTabSelector, setShowMobileTabSelector] = useState(false);
-  const { t } = useI18n();
 
   // Get tab icon helper
   const getTabIcon = (tab: Tab) => {

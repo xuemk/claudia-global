@@ -199,7 +199,6 @@ const FloatingPromptInputInner = (
 
   // State for smart visibility
   const [isVisible, setIsVisible] = useState(true);
-  const [mouseY, setMouseY] = useState(0);
   const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load available models from enabled environment variable groups
@@ -241,7 +240,6 @@ const FloatingPromptInputInner = (
     const handleMouseMove = (event: MouseEvent) => {
       const windowHeight = window.innerHeight;
       const currentMouseY = event.clientY;
-      setMouseY(currentMouseY);
 
       // Define the bottom trigger zone (bottom 120px to account for floating position)
       const triggerZone = 120;

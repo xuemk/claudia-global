@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Reorder } from 'framer-motion';
 import { X, Plus, MessageSquare, Bot, AlertCircle, Loader2, Folder, BarChart, Server, Settings, FileText } from 'lucide-react';
 import { useTabState } from '@/hooks/useTabState';
 import { Tab } from '@/contexts/contexts';
@@ -300,11 +300,6 @@ const TabManager: React.FC<TabManagerProps> = ({ className }) => {
       createProjectsTab();
       trackEvent.tabCreated('projects');
     }
-  };
-
-  const scrollTabs = (direction: "up" | "down") => {
-    // Scroll functionality can be added later if needed for vertical layout
-    console.log('Scroll tabs:', direction);
   };
 
   return (
