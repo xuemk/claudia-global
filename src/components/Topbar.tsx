@@ -133,16 +133,16 @@ export const Topbar: React.FC<TopbarProps> = ({
         className="h-auto py-1 px-2 hover:bg-accent"
         onClick={onSettingsClick}
       >
-        <div className="flex items-center space-x-2 text-xs">
+        <div className="flex items-center space-x-1.5 text-xs">
           <Circle
             className={cn(
-              "h-3 w-3",
+              "h-2.5 w-2.5",
               versionStatus.is_installed
                 ? "fill-green-500 text-green-500"
                 : "fill-red-500 text-red-500"
             )}
           />
-          <span>
+          <span className="text-xs">
             {versionStatus.is_installed && versionStatus.version
               ? t.claude.claudeVersion.replace("{version}", versionStatus.version)
               : t.claude.claudeCode}
@@ -189,7 +189,7 @@ export const Topbar: React.FC<TopbarProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "flex items-center justify-between px-4 py-3 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "flex items-center justify-between px-2 py-0.5 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-6",
         className
       )}
     >
@@ -197,31 +197,31 @@ export const Topbar: React.FC<TopbarProps> = ({
       <StatusIndicator />
 
       {/* Action Buttons */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-0.5">
         {onAgentsClick && (
-          <Button variant="ghost" size="sm" onClick={onAgentsClick} className="text-xs">
-            <Bot className="mr-2 h-3 w-3" />
+          <Button variant="ghost" size="sm" onClick={onAgentsClick} className="text-xs h-5 px-1.5">
+            <Bot className="mr-1 h-2.5 w-2.5" />
             Agents
           </Button>
         )}
 
-        <Button variant="ghost" size="sm" onClick={onUsageClick} className="text-xs">
-          <BarChart3 className="mr-2 h-3 w-3" />
+        <Button variant="ghost" size="sm" onClick={onUsageClick} className="text-xs h-5 px-1.5">
+          <BarChart3 className="mr-1 h-2.5 w-2.5" />
           {t.app.usageDashboard}
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={onClaudeClick} className="text-xs">
-          <FileText className="mr-2 h-3 w-3" />
+        <Button variant="ghost" size="sm" onClick={onClaudeClick} className="text-xs h-5 px-1.5">
+          <FileText className="mr-1 h-2.5 w-2.5" />
           {t.app.claudeMd}
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={onMCPClick} className="text-xs">
-          <Network className="mr-2 h-3 w-3" />
+        <Button variant="ghost" size="sm" onClick={onMCPClick} className="text-xs h-5 px-1.5">
+          <Network className="mr-1 h-2.5 w-2.5" />
           MCP
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={onSettingsClick} className="text-xs">
-          <Settings className="mr-2 h-3 w-3" />
+        <Button variant="ghost" size="sm" onClick={onSettingsClick} className="text-xs h-5 px-1.5">
+          <Settings className="mr-1 h-2.5 w-2.5" />
           {t.common.settings}
         </Button>
 
@@ -231,10 +231,10 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="ghost"
           size="icon"
           onClick={onInfoClick}
-          className="h-8 w-8"
+          className="h-4 w-4"
           title={t.common.about}
         >
-          <Info className="h-4 w-4" />
+          <Info className="h-2.5 w-2.5" />
         </Button>
       </div>
     </motion.div>

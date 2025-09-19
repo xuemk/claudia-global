@@ -1609,22 +1609,22 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.1 }}
-      className="p-4 border-b border-border flex-shrink-0"
+      className="p-3 border-b border-border flex-shrink-0 bg-background/30"
     >
-      <Label htmlFor="project-path" className="text-sm font-medium">
+      <Label htmlFor="project-path" className="text-xs font-medium text-muted-foreground">
         Project Directory
       </Label>
-      <div className="flex items-center gap-2 mt-1">
+      <div className="flex items-center gap-2 mt-1.5">
         <Input
           id="project-path"
           value={projectPath}
           onChange={(e) => setProjectPath(e.target.value)}
           placeholder="/path/to/your/project"
-          className="flex-1"
+          className="flex-1 h-8 text-sm"
           disabled={isLoading}
         />
-        <Button onClick={handleSelectPath} size="icon" variant="outline" disabled={isLoading}>
-          <FolderOpen className="h-4 w-4" />
+        <Button onClick={handleSelectPath} size="icon" variant="outline" disabled={isLoading} className="h-8 w-8">
+          <FolderOpen className="h-3.5 w-3.5" />
         </Button>
       </div>
     </motion.div>
@@ -1662,32 +1662,34 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex items-center justify-between p-4 border-b border-border"
+          className="flex items-center justify-between p-2 border-b border-border bg-background/50 backdrop-blur-sm h-12"
         >
-          <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="icon" onClick={onBack} className="h-6 w-6">
+              <ArrowLeft className="h-3 w-3" />
             </Button>
             <div className="flex items-center gap-2">
-              <Terminal className="h-5 w-5 text-muted-foreground" />
+              <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
               <div className="flex-1">
-                <h1 className="text-xl font-bold">{t.sessions.claudeCodeSession}</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-sm font-semibold">{t.sessions.claudeCodeSession}</h1>
+                <p className="text-xs text-muted-foreground">
                   {projectPath ? `${projectPath}` : "No project selected"}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* 直接显示的命令栏 */}
+          <div className="flex items-center gap-1">
             {projectPath && onProjectSettings && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onProjectSettings(projectPath)}
                 disabled={isLoading}
+                className="h-6 px-2 text-xs"
               >
-                <Settings className="h-4 w-4 mr-2" />
+                <Settings className="h-2.5 w-2.5 mr-1" />
                 Hooks
               </Button>
             )}
@@ -1697,12 +1699,12 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
                 size="sm"
                 onClick={() => setShowSlashCommandsSettings(true)}
                 disabled={isLoading}
+                className="h-6 px-2 text-xs"
               >
-                <Command className="h-4 w-4 mr-2" />
+                <Command className="h-2.5 w-2.5 mr-1" />
                 {t.sessions.commands}
               </Button>
             )}
-            {/* Refresh Button - placed before commands as requested */}
             {projectPath && (
               <Button
                 variant="outline"
@@ -1710,89 +1712,88 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
                 onClick={handleRefreshEnvironment}
                 disabled={isLoading}
                 title="刷新环境变量和模型配置"
+                className="h-6 px-2 text-xs"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-2.5 w-2.5 mr-1" />
                 刷新
               </Button>
             )}
-            <div className="flex items-center gap-2">
-              {showSettings && (
-                <CheckpointSettings
-                  sessionId={effectiveSession?.id || ""}
-                  projectId={effectiveSession?.project_id || ""}
-                  projectPath={projectPath}
-                />
-              )}
+            {showSettings && (
+              <CheckpointSettings
+                sessionId={effectiveSession?.id || ""}
+                projectId={effectiveSession?.project_id || ""}
+                projectPath={projectPath}
+              />
+            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="h-6 w-6"
+                  >
+                    <Settings className={cn("h-3 w-3", showSettings && "text-primary")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t.sessions.checkpointSettingsTooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {effectiveSession && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setShowSettings(!showSettings)}
-                      className="h-8 w-8"
+                      onClick={() => setShowTimeline(!showTimeline)}
+                      className="h-6 w-6"
                     >
-                      <Settings className={cn("h-4 w-4", showSettings && "text-primary")} />
+                      <GitBranch className={cn("h-3 w-3", showTimeline && "text-primary")} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{t.sessions.checkpointSettingsTooltip}</p>
+                    <p>{t.sessions.timelineNavigatorTooltip}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              {effectiveSession && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowTimeline(!showTimeline)}
-                        className="h-8 w-8"
-                      >
-                        <GitBranch className={cn("h-4 w-4", showTimeline && "text-primary")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t.sessions.timelineNavigatorTooltip}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {messages.length > 0 && (
-                <Popover
-                  trigger={
-                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                      <Copy className="h-4 w-4" />
-                      {t.sessions.copyOutput}
-                      <ChevronDown className="h-3 w-3" />
+            )}
+            {messages.length > 0 && (
+              <Popover
+                trigger={(
+                  <Button variant="ghost" size="sm" className="flex items-center gap-1 h-6 px-2 text-xs">
+                    <Copy className="h-2.5 w-2.5" />
+                    {t.sessions.copyOutput}
+                    <ChevronDown className="h-2 w-2" />
+                  </Button>
+                )}
+                content={
+                  <div className="w-44 p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyAsMarkdown}
+                      className="w-full justify-start"
+                    >
+                      {t.sessions.copyAsMarkdown}
                     </Button>
-                  }
-                  content={
-                    <div className="w-44 p-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCopyAsMarkdown}
-                        className="w-full justify-start"
-                      >
-                        {t.sessions.copyAsMarkdown}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCopyAsJsonl}
-                        className="w-full justify-start"
-                      >
-                        {t.sessions.copyAsJsonl}
-                      </Button>
-                    </div>
-                  }
-                  open={copyPopoverOpen}
-                  onOpenChange={setCopyPopoverOpen}
-                />
-              )}
-            </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyAsJsonl}
+                      className="w-full justify-start"
+                    >
+                      {t.sessions.copyAsJsonl}
+                    </Button>
+                  </div>
+                }
+                open={copyPopoverOpen}
+                onOpenChange={setCopyPopoverOpen}
+              />
+            )}
           </div>
         </motion.div>
 

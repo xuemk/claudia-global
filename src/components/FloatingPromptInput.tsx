@@ -197,6 +197,11 @@ const FloatingPromptInputInner = (
   const [models, setModels] = useState<Model[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
 
+  // State for smart visibility
+  const [isVisible, setIsVisible] = useState(true);
+  const [mouseY, setMouseY] = useState(0);
+  const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load available models from enabled environment variable groups
   const loadModels = useCallback(async () => {
     try {
@@ -230,6 +235,47 @@ const FloatingPromptInputInner = (
   useEffect(() => {
     loadModels();
   }, [loadModels]);
+
+  // Smart visibility effect - track mouse position
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const windowHeight = window.innerHeight;
+      const currentMouseY = event.clientY;
+      setMouseY(currentMouseY);
+
+      // Define the bottom trigger zone (bottom 120px to account for floating position)
+      const triggerZone = 120;
+      const shouldShow = currentMouseY >= windowHeight - triggerZone;
+
+      if (shouldShow) {
+        // Mouse is in trigger zone - show immediately
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current);
+          visibilityTimeoutRef.current = null;
+        }
+        setIsVisible(true);
+      } else {
+        // Mouse left trigger zone - start fade out after delay
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current);
+        }
+        visibilityTimeoutRef.current = setTimeout(() => {
+          setIsVisible(false);
+        }, 500); // 500ms delay before hiding
+      }
+    };
+
+    // Add global mouse move listener
+    document.addEventListener('mousemove', handleMouseMove);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Listen for environment refresh events
   useEffect(() => {
@@ -1053,10 +1099,12 @@ const FloatingPromptInputInner = (
         )}
       </AnimatePresence>
 
-      {/* Fixed Position Input Bar */}
-      <div
+      {/* Smart Floating Input Bar */}
+      <motion.div
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border",
+          "fixed bottom-4 left-4 right-4 z-40",
+          "bg-gradient-to-t from-background via-background/98 to-background/80",
+          "backdrop-blur-md border border-border/50 rounded-lg shadow-xl",
           "transform-gpu will-change-transform", // 优化GPU渲染和布局稳定性
           dragActive && "ring-2 ring-primary ring-offset-2",
           className
@@ -1065,8 +1113,26 @@ const FloatingPromptInputInner = (
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        initial={{ opacity: 1, y: 0 }}
+        animate={{ 
+          opacity: isVisible ? 1 : 0.15, // 完全透明改为低透明度，保持可见但不干扰
+          y: isVisible ? 0 : 10, // 轻微下移，减少视觉干扰
+          pointerEvents: isVisible ? 'auto' : 'none' as any // 透明时禁用交互
+        }}
+        transition={{ 
+          duration: 0.4,
+          ease: "easeInOut"
+        }}
+        onMouseEnter={() => {
+          // 鼠标进入输入框区域时立即显示
+          if (visibilityTimeoutRef.current) {
+            clearTimeout(visibilityTimeoutRef.current);
+            visibilityTimeoutRef.current = null;
+          }
+          setIsVisible(true);
+        }}
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto relative">
           {/* Image previews */}
           {embeddedImages.length > 0 && (
             <ImagePreview
@@ -1276,7 +1342,7 @@ const FloatingPromptInputInner = (
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 };

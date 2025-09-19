@@ -1,17 +1,19 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTabState } from '@/hooks/useTabState';
 import { useScreenTracking } from '@/hooks/useAnalytics';
 import type { Tab } from '@/contexts/contexts';
 import type { Agent } from '@/lib/api';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, ChevronDown, MessageSquare, Bot, Folder, BarChart, Server, Settings as SettingsIcon, FileText } from 'lucide-react';
 import { api, type Project, type Session, type ClaudeMdFile } from '@/lib/api';
 import { ProjectList } from '@/components/ProjectList';
 import { SessionList } from '@/components/SessionList';
 import { RunningClaudeSessions } from '@/components/RunningClaudeSessions';
 import { Button } from '@/components/ui/button';
+import { Popover } from '@/components/ui/popover';
 import { useI18n } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
+import { cn } from '@/lib/utils';
 
 // Lazy load heavy components
 const ClaudeCodeSession = lazy(() => import('@/components/ClaudeCodeSession').then(m => ({ default: m.ClaudeCodeSession })));
@@ -367,7 +369,99 @@ export const TabContent: React.FC = () => {
     createImportAgentTab,
     closeTab,
     updateTab,
+    switchToTab,
   } = useTabState();
+  const [showMobileTabSelector, setShowMobileTabSelector] = useState(false);
+  const { t } = useI18n();
+
+  // Get tab icon helper
+  const getTabIcon = (tab: Tab) => {
+    switch (tab.type) {
+      case "chat":
+        return MessageSquare;
+      case "agent":
+        return Bot;
+      case "projects":
+        return Folder;
+      case "usage":
+        return BarChart;
+      case "mcp":
+        return Server;
+      case "settings":
+        return SettingsIcon;
+      case "claude-md":
+      case "claude-file":
+        return FileText;
+      case "agent-execution":
+        return Bot;
+      case "create-agent":
+        return Plus;
+      case "import-agent":
+        return Plus;
+      default:
+        return MessageSquare;
+    }
+  };
+
+  // Mobile tab selector
+  const MobileTabSelector = () => {
+    const activeTab = tabs.find(tab => tab.id === activeTabId);
+    if (!activeTab) return null;
+
+    const Icon = getTabIcon(activeTab);
+
+    return (
+      <div className="sm:hidden border-b border-border bg-background/95 backdrop-blur">
+        <Popover
+          trigger={
+            <Button 
+              variant="ghost" 
+              className="w-full justify-between h-12 px-4 rounded-none"
+              onClick={() => setShowMobileTabSelector(!showMobileTabSelector)}
+            >
+              <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4" />
+                <span className="text-sm font-medium">{activeTab.title}</span>
+                {activeTab.hasUnsavedChanges && (
+                  <div className="w-2 h-2 bg-primary rounded-full" />
+                )}
+              </div>
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          }
+          content={
+            <div className="w-64 max-h-80 overflow-y-auto p-2">
+              <div className="space-y-1">
+                {tabs.map((tab) => {
+                  const TabIcon = getTabIcon(tab);
+                  return (
+                    <Button
+                      key={tab.id}
+                      variant={tab.id === activeTabId ? "secondary" : "ghost"}
+                      className="w-full justify-start gap-2 h-10"
+                      onClick={() => {
+                        switchToTab(tab.id);
+                        setShowMobileTabSelector(false);
+                      }}
+                    >
+                      <TabIcon className="w-4 h-4" />
+                      <span className="flex-1 truncate text-left">{tab.title}</span>
+                      {tab.hasUnsavedChanges && (
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                      )}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          }
+          open={showMobileTabSelector}
+          onOpenChange={setShowMobileTabSelector}
+          align="start"
+        />
+      </div>
+    );
+  };
 
   // Listen for events to open sessions in tabs
   useEffect(() => {
@@ -476,34 +570,37 @@ export const TabContent: React.FC = () => {
   ]);
 
   return (
-    <div className="flex-1 h-full relative">
-      {tabs.map((tab) => {
-        const isActive = tab.id === activeTabId;
-        return (
-          <div
-            key={tab.id}
-            className={`absolute inset-0 transition-opacity duration-200 ${
-              isActive 
-                ? 'opacity-100 pointer-events-auto z-10' 
-                : 'opacity-0 pointer-events-none z-0'
-            }`}
-            style={{
-              visibility: isActive ? 'visible' : 'hidden'
-            }}
-          >
-            <TabPanel tab={tab} isActive={isActive} />
-          </div>
-        );
-      })}
+    <div className="flex-1 h-full relative flex flex-col">
+      <MobileTabSelector />
+      <div className="flex-1 overflow-hidden relative">
+        {tabs.map((tab) => {
+          const isActive = tab.id === activeTabId;
+          return (
+            <div
+              key={tab.id}
+              className={`absolute inset-0 transition-opacity duration-200 ${
+                isActive 
+                  ? 'opacity-100 pointer-events-auto z-10' 
+                  : 'opacity-0 pointer-events-none z-0'
+              }`}
+              style={{
+                visibility: isActive ? 'visible' : 'hidden'
+              }}
+            >
+              <TabPanel tab={tab} isActive={isActive} />
+            </div>
+          );
+        })}
 
-      {tabs.length === 0 && (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          <div className="text-center">
-            <p className="text-lg mb-2">No tabs open</p>
-            <p className="text-sm">Click the + button to start a new chat</p>
+        {tabs.length === 0 && (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="text-center">
+              <p className="text-lg mb-2">No tabs open</p>
+              <p className="text-sm">Click the + button to start a new chat</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
